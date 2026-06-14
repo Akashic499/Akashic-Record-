@@ -14,6 +14,28 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// --- ADDED THIS ROUTE TO FIX THE ERROR ---
+// Root route: This handles the main URL (https://akashic-record.onrender.com)
+app.get('/', (req, res) => {
+  res.send(`
+    <html>
+      <head><title>Akashic Record API</title></head>
+      <body style="font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f0f2f5;">
+        <h1 style="color: #1a73e8;">📚 Akashic Record Server is Live</h1>
+        <p>The backend is running successfully and connected to Neon PostgreSQL.</p>
+        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
+          <strong>Available Endpoints:</strong>
+          <ul style="margin-top: 10px;">
+            <li><code>/health</code> - Check server status</li>
+            <li><code>/api/users</code> - User management</li>
+            <li><code>/api/records</code> - Record management</li>
+          </ul>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
