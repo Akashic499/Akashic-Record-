@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "C72Cl7s2s_hIqgv-_hR2M"
+uri = "file://artifacts/akashic/assets/images/icon.png"
+type = "image"
+title = "akashic-icon"
