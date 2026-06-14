@@ -3,20 +3,18 @@ services:
     name: akashic-backend
     runtime: node
     plan: free
-    buildCommand: pnpm install && pnpm run build && cd artifacts/server && pnpm run build
-    startCommand: node artifacts/server/dist/index.js
+    buildCommand: cd artifacts/server && pnpm install && pnpm run build
+    startCommand: node dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: FRONTEND_URL
-        value: ${FRONTEND_URL}
       - key: DATABASE_URL
         scope: runtime
         sync: false
-
-  - type: postgresql
-    name: akashic-db
-    plan: free
-    region: ohio
-    ipAllowList: []
-    maxConnections: 10
+      - key: GEMINI_API_KEY
+        scope: runtime
+        sync: false
+      - key: FRONTEND_URL
+        value: http://localhost:3000
+      - key: PORT
+        value: "3000"
