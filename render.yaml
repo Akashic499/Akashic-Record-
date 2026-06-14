@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: akashic-backend
+    runtime: node
+    plan: free
+    buildCommand: pnpm install && pnpm run build && cd artifacts/server && pnpm run build
+    startCommand: node artifacts/server/dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        value: ${FRONTEND_URL}
+      - key: DATABASE_URL
+        scope: runtime
+        sync: false
+
+  - type: postgresql
+    name: akashic-db
+    plan: free
+    region: ohio
+    ipAllowList: []
+    maxConnections: 10
