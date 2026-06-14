@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { StarField } from "@/components/StarField";
 import { useKnowledge } from "@/context/KnowledgeContext";
 import { useColors } from "@/hooks/useColors";
 import { getDomain } from "@/lib/extractor";
@@ -22,23 +23,24 @@ export default function SearchScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { pages } = useKnowledge();
-
   const [query, setQuery] = useState("");
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 + 84 : 80;
+  const bottomPad = Platform.OS === "web" ? 34 + 84 : 84;
 
   const results = useMemo(() => {
     if (query.trim().length < 2) return [];
     return searchKnowledge(query, pages);
   }, [query, pages]);
 
-  const highlightText = (text: string, q: string): { text: string; highlight: boolean }[] => {
+  const highlightParts = (text: string, q: string) => {
     if (!q.trim()) return [{ text, highlight: false }];
     const terms = q.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
-    const pattern = new RegExp(`(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
-    const parts = text.split(pattern);
-    return parts.map((part) => ({
+    const pattern = new RegExp(
+      `(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
+      "gi"
+    );
+    return text.split(pattern).map((part) => ({
       text: part,
       highlight: terms.some((t) => part.toLowerCase() === t),
     }));
@@ -46,37 +48,28 @@ export default function SearchScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: topPad + 12,
-            backgroundColor: colors.card,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
-        <Text style={[styles.title, { color: colors.foreground }]}>Search</Text>
-        <View
-          style={[
-            styles.searchBar,
-            { backgroundColor: colors.secondary, borderColor: colors.border },
-          ]}
-        >
-          <Ionicons name="search-outline" size={18} color={colors.mutedForeground} />
+      <StarField />
+
+      <View style={[styles.header, { paddingTop: topPad + 14 }]}>
+        <Text style={styles.headerGlyph}>✦</Text>
+        <Text style={styles.headerTitle}>SEEK THE RECORD</Text>
+        <Text style={styles.headerSub}>QUERY THE AKASHIC FIELD</Text>
+
+        <View style={styles.searchBar}>
+          <Text style={styles.searchGlyph}>{query ? "◈" : "✦"}</Text>
           <TextInput
-            style={[styles.searchInput, { color: colors.foreground }]}
+            style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
-            placeholder="Search your absorbed knowledge…"
-            placeholderTextColor={colors.mutedForeground}
+            placeholder="Speak your query into the void…"
+            placeholderTextColor="#4a3c60"
             returnKeyType="search"
             autoCapitalize="none"
             autoCorrect={false}
           />
           {query.length > 0 && (
             <Pressable onPress={() => setQuery("")}>
-              <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+              <Ionicons name="close" size={16} color="#4a3c60" />
             </Pressable>
           )}
         </View>
@@ -86,71 +79,41 @@ export default function SearchScreen() {
         data={results}
         keyExtractor={(item) => item.page.id}
         renderItem={({ item }) => {
-          const highlights = highlightText(item.excerpt, query);
+          const highlights = highlightParts(item.excerpt, query);
           return (
             <Pressable
-              style={({ pressed }) => [
-                styles.resultCard,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  opacity: pressed ? 0.75 : 1,
-                },
-              ]}
+              style={({ pressed }) => [styles.resultCard, { opacity: pressed ? 0.7 : 1 }]}
               onPress={() => router.push(`/wiki/${item.page.id}`)}
             >
-              <View style={styles.resultHeader}>
-                {item.page.favicon ? (
-                  <Image source={{ uri: item.page.favicon }} style={styles.favicon} />
-                ) : (
-                  <View
-                    style={[
-                      styles.faviconPlaceholder,
-                      { backgroundColor: colors.secondary },
-                    ]}
-                  >
-                    <Ionicons name="globe-outline" size={14} color={colors.mutedForeground} />
-                  </View>
-                )}
-                <View style={styles.resultMeta}>
-                  <Text
-                    style={[styles.resultTitle, { color: colors.foreground }]}
-                    numberOfLines={1}
-                  >
-                    {item.page.title}
-                  </Text>
-                  <Text style={[styles.resultDomain, { color: colors.mutedForeground }]}>
-                    {getDomain(item.page.url)}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.scoreBadge,
-                    { backgroundColor: "rgba(124,58,237,0.2)" },
-                  ]}
-                >
-                  <Text style={[styles.scoreText, { color: "#a78bfa" }]}>
-                    {item.score}
-                  </Text>
-                </View>
-              </View>
-              <Text style={[styles.excerpt, { color: colors.mutedForeground }]}>
-                {highlights.map((part, i) =>
-                  part.highlight ? (
-                    <Text
-                      key={i}
-                      style={[
-                        styles.excerptHighlight,
-                        { backgroundColor: "rgba(245,158,11,0.25)", color: "#f59e0b" },
-                      ]}
-                    >
-                      {part.text}
-                    </Text>
+              <View style={styles.resultCardInner}>
+                <View style={styles.resultHeader}>
+                  {item.page.favicon ? (
+                    <Image source={{ uri: item.page.favicon }} style={styles.favicon} />
                   ) : (
-                    <Text key={i}>{part.text}</Text>
-                  )
-                )}
-              </Text>
+                    <Text style={styles.resultGlyph}>◈</Text>
+                  )}
+                  <View style={styles.resultMeta}>
+                    <Text style={styles.resultTitle} numberOfLines={1}>{item.page.title}</Text>
+                    <Text style={styles.resultDomain}>{getDomain(item.page.url)}</Text>
+                  </View>
+                  <View style={styles.resonanceBadge}>
+                    <Text style={styles.resonanceLabel}>RESONANCE</Text>
+                    <Text style={styles.resonanceValue}>{item.score}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <Text style={styles.excerpt}>
+                  {highlights.map((part, i) =>
+                    part.highlight ? (
+                      <Text key={i} style={styles.excerptHighlight}>{part.text}</Text>
+                    ) : (
+                      <Text key={i}>{part.text}</Text>
+                    )
+                  )}
+                </Text>
+              </View>
             </Pressable>
           );
         }}
@@ -158,42 +121,26 @@ export default function SearchScreen() {
           <View style={styles.empty}>
             {pages.length === 0 ? (
               <>
-                <Ionicons name="search-outline" size={48} color={colors.mutedForeground} />
-                <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-                  Nothing to Search
-                </Text>
-                <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                  Browse pages in the Browse tab first to build your knowledge base.
-                </Text>
+                <Text style={styles.emptyGlyph}>✦</Text>
+                <Text style={styles.emptyTitle}>THE FIELD IS EMPTY</Text>
+                <Text style={styles.emptyText}>Inscribe tomes to the record first, then seek within them.</Text>
               </>
             ) : query.trim().length < 2 ? (
               <>
-                <Ionicons name="sparkles-outline" size={48} color={colors.mutedForeground} />
-                <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-                  Search Your Knowledge
-                </Text>
-                <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                  {pages.length} page{pages.length !== 1 ? "s" : ""} absorbed. Start typing to search.
-                </Text>
+                <Text style={styles.emptyGlyph}>◈</Text>
+                <Text style={styles.emptyTitle}>{pages.length} TOMES AWAIT</Text>
+                <Text style={styles.emptyText}>Speak your query into the void and the Record shall answer.</Text>
               </>
             ) : (
               <>
-                <Ionicons name="file-tray-outline" size={48} color={colors.mutedForeground} />
-                <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-                  No Results
-                </Text>
-                <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                  No relevant knowledge found for "{query}". Try different keywords.
-                </Text>
+                <Text style={styles.emptyGlyph}>○</Text>
+                <Text style={styles.emptyTitle}>NO RESONANCE FOUND</Text>
+                <Text style={styles.emptyText}>The Record holds no knowledge of "{query}". Inscribe more tomes.</Text>
               </>
             )}
           </View>
         }
-        contentContainerStyle={{
-          padding: 16,
-          paddingBottom: bottomPad,
-          flexGrow: 1,
-        }}
+        contentContainerStyle={{ padding: 20, paddingBottom: bottomPad, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       />
@@ -201,66 +148,120 @@ export default function SearchScreen() {
   );
 }
 
+const GOLD = "#c9a840";
+const BORDER = "rgba(201,168,64,0.22)";
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingHorizontal: 20,
-    paddingBottom: 14,
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    gap: 12,
+    borderBottomColor: BORDER,
+    backgroundColor: "rgba(8,6,32,0.95)",
+    gap: 4,
   },
-  title: { fontSize: 22, fontFamily: "Inter_700Bold" },
+  headerGlyph: { color: GOLD, fontSize: 18, opacity: 0.6 },
+  headerTitle: {
+    fontFamily: "Cinzel_700Bold",
+    fontSize: 16,
+    letterSpacing: 5,
+    color: GOLD,
+  },
+  headerSub: {
+    fontFamily: "Cinzel_400Regular",
+    fontSize: 8,
+    letterSpacing: 3,
+    color: "rgba(201,168,64,0.4)",
+    marginBottom: 12,
+  },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 14,
+    width: "100%",
     borderWidth: 1,
+    borderColor: BORDER,
     paddingHorizontal: 14,
-    height: 46,
+    height: 42,
     gap: 10,
+    backgroundColor: "rgba(13,9,39,0.6)",
   },
+  searchGlyph: { color: GOLD, fontSize: 12, opacity: 0.7 },
   searchInput: {
     flex: 1,
-    fontSize: 15,
     fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#e8d5a3",
     height: "100%",
+    fontStyle: "italic",
   },
-  resultCard: {
-    padding: 14,
-    borderRadius: 14,
+  resultCard: { marginBottom: 14 },
+  resultCardInner: {
     borderWidth: 1,
-    marginBottom: 10,
+    borderColor: BORDER,
+    padding: 14,
+    backgroundColor: "rgba(13,9,39,0.85)",
     gap: 10,
   },
   resultHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
-  favicon: { width: 28, height: 28, borderRadius: 6 },
-  faviconPlaceholder: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  favicon: { width: 22, height: 22, borderRadius: 2 },
+  resultGlyph: { width: 22, textAlign: "center", color: GOLD, fontSize: 14 },
   resultMeta: { flex: 1 },
-  resultTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  resultDomain: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
-  scoreBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  scoreText: { fontSize: 11, fontFamily: "Inter_700Bold" },
-  excerpt: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 19 },
-  excerptHighlight: { fontFamily: "Inter_600SemiBold", borderRadius: 3 },
+  resultTitle: {
+    fontFamily: "Cinzel_400Regular",
+    fontSize: 13,
+    color: "#e8d5a3",
+    letterSpacing: 0.3,
+  },
+  resultDomain: { fontFamily: "Inter_400Regular", fontSize: 10, color: "#7a6850", marginTop: 2 },
+  resonanceBadge: { alignItems: "center" },
+  resonanceLabel: {
+    fontFamily: "Cinzel_400Regular",
+    fontSize: 6,
+    letterSpacing: 1.5,
+    color: "rgba(201,168,64,0.5)",
+  },
+  resonanceValue: {
+    fontFamily: "Cinzel_700Bold",
+    fontSize: 16,
+    color: GOLD,
+  },
+  divider: { height: 1, backgroundColor: BORDER },
+  excerpt: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#7a6850",
+    lineHeight: 19,
+    fontStyle: "italic",
+  },
+  excerptHighlight: {
+    color: GOLD,
+    fontStyle: "normal",
+    fontFamily: "Inter_500Medium",
+  },
   empty: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 32,
     gap: 12,
-    paddingTop: 40,
+    paddingTop: 60,
   },
-  emptyTitle: { fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" },
+  emptyGlyph: { color: GOLD, fontSize: 32, opacity: 0.4 },
+  emptyTitle: {
+    fontFamily: "Cinzel_700Bold",
+    fontSize: 12,
+    letterSpacing: 4,
+    color: GOLD,
+    opacity: 0.6,
+  },
   emptyText: {
-    fontSize: 13,
     fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#7a6850",
     textAlign: "center",
     lineHeight: 20,
+    fontStyle: "italic",
   },
 });

@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useRef, useState } from "react";
 import {
@@ -13,6 +12,8 @@ import {
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AkashicSymbol } from "@/components/AkashicSymbol";
+import { StarField } from "@/components/StarField";
 import { useKnowledge, type ChatMessage } from "@/context/KnowledgeContext";
 import { useColors } from "@/hooks/useColors";
 import { getDomain } from "@/lib/extractor";
@@ -33,14 +34,11 @@ export default function ChatScreen() {
   const handleSend = useCallback(async () => {
     const question = input.trim();
     if (!question) return;
-
     setInput("");
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     addMessage("user", question);
-
     setIsThinking(true);
-    await new Promise((r) => setTimeout(r, 400));
-
+    await new Promise((r) => setTimeout(r, 600));
     const { answer, sources } = generateAnswer(question, pages);
     addMessage("assistant", answer, sources);
     setIsThinking(false);
@@ -48,69 +46,41 @@ export default function ChatScreen() {
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isUser = item.role === "user";
-
     return (
-      <View
-        style={[
-          styles.messageWrapper,
-          isUser ? styles.messageWrapperUser : styles.messageWrapperAssistant,
-        ]}
-      >
+      <View style={[styles.msgWrapper, isUser ? styles.msgWrapperUser : styles.msgWrapperOracle]}>
         {!isUser && (
-          <View
-            style={[
-              styles.avatar,
-              { backgroundColor: "rgba(124,58,237,0.2)", borderColor: "rgba(124,58,237,0.4)" },
-            ]}
-          >
-            <Text style={styles.avatarIcon}>✦</Text>
+          <View style={styles.oracleAvatar}>
+            <Text style={styles.oracleAvatarGlyph}>✦</Text>
           </View>
         )}
-        <View style={styles.messageContent}>
-          <View
-            style={[
-              styles.bubble,
-              isUser
-                ? { backgroundColor: colors.primary }
-                : { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
-            ]}
-          >
-            <Text
-              style={[
-                styles.bubbleText,
-                { color: isUser ? "#ffffff" : colors.foreground },
-              ]}
-            >
+        <View style={styles.msgContent}>
+          {!isUser && (
+            <Text style={styles.oracleLabel}>THE ORACLE SPEAKS</Text>
+          )}
+          <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleOracle]}>
+            <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextOracle]}>
               {item.content}
             </Text>
           </View>
           {!isUser && item.sources && item.sources.length > 0 && (
             <View style={styles.sources}>
-              <Text style={[styles.sourcesLabel, { color: colors.mutedForeground }]}>
-                Sources:
-              </Text>
+              <Text style={styles.sourcesLabel}>CONSULTED TOMES</Text>
               <View style={styles.sourceChips}>
-                {item.sources.map((source) => (
-                  <View
-                    key={source.id}
-                    style={[
-                      styles.sourceChip,
-                      {
-                        backgroundColor: "rgba(124,58,237,0.1)",
-                        borderColor: "rgba(124,58,237,0.3)",
-                      },
-                    ]}
-                  >
-                    <Ionicons name="link-outline" size={10} color="#a78bfa" />
-                    <Text style={[styles.sourceChipText, { color: "#a78bfa" }]} numberOfLines={1}>
-                      {getDomain(source.url)}
-                    </Text>
+                {item.sources.map((s) => (
+                  <View key={s.id} style={styles.sourceChip}>
+                    <Text style={styles.sourceChipGlyph}>◈</Text>
+                    <Text style={styles.sourceChipText} numberOfLines={1}>{getDomain(s.url)}</Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
         </View>
+        {isUser && (
+          <View style={styles.userAvatar}>
+            <Text style={styles.userAvatarGlyph}>○</Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -121,79 +91,56 @@ export default function ChatScreen() {
       behavior="padding"
       keyboardVerticalOffset={0}
     >
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: topPad + 12,
-            backgroundColor: colors.card,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
-        <View
-          style={[
-            styles.headerIcon,
-            { backgroundColor: "rgba(124,58,237,0.2)", borderColor: "rgba(124,58,237,0.4)" },
-          ]}
-        >
-          <Text style={styles.headerIconText}>✦</Text>
-        </View>
-        <View>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>Ask Akashic</Text>
-          <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
+      <StarField />
+
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: topPad + 14 }]}>
+        <AkashicSymbol size={40} color="#c9a840" />
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>THE ORACLE</Text>
+          <Text style={styles.headerSub}>
             {pages.length > 0
-              ? `${pages.length} pages in memory`
-              : "Absorb pages to unlock knowledge"}
+              ? `${pages.length} TOME${pages.length !== 1 ? "S" : ""} IN THE RECORD`
+              : "INSCRIBE TOMES TO AWAKEN THE ORACLE"}
           </Text>
         </View>
       </View>
 
+      {/* Messages */}
       <FlatList
         ref={flatListRef}
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
-        contentContainerStyle={[
-          styles.messagesList,
-          { paddingBottom: 16 },
-        ]}
+        contentContainerStyle={[styles.messagesList, { paddingBottom: 16 }]}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyGlyph}>✦</Text>
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-              Ask Me Anything
-            </Text>
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+            <AkashicSymbol size={70} color="#c9a840" />
+            <Text style={styles.emptyTitle}>CONSULT THE ORACLE</Text>
+            <View style={styles.emptyDivider}>
+              <View style={styles.emptyDividerLine} />
+              <Text style={styles.emptyDividerGlyph}>✦</Text>
+              <View style={styles.emptyDividerLine} />
+            </View>
+            <Text style={styles.emptyText}>
               {pages.length > 0
-                ? `I have ${pages.length} page${pages.length !== 1 ? "s" : ""} of knowledge ready. Ask me about anything you've browsed.`
-                : "Browse websites first, then ask questions about what you've read. Your knowledge grows with every page you visit."}
+                ? `The Oracle has absorbed ${pages.length} tome${pages.length !== 1 ? "s" : ""} of knowledge. Speak your query and receive wisdom from the Record.`
+                : "The Oracle is silent. Inscribe tomes by browsing the mortal web, then the Oracle shall speak."}
             </Text>
-
             {pages.length > 0 && (
               <View style={styles.suggestions}>
                 {[
-                  "Summarize what I've been reading",
-                  "What topics have I explored?",
-                  "Tell me about the main entities",
+                  "What wisdom have you gathered?",
+                  "Reveal the dominant sigils",
+                  "Summarize the inscribed knowledge",
                 ].map((s) => (
                   <Pressable
                     key={s}
-                    style={[
-                      styles.suggestion,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                      },
-                    ]}
-                    onPress={() => {
-                      setInput(s);
-                    }}
+                    style={styles.suggestion}
+                    onPress={() => setInput(s)}
                   >
-                    <Text style={[styles.suggestionText, { color: colors.foreground }]}>
-                      {s}
-                    </Text>
-                    <Ionicons name="arrow-up-outline" size={14} color={colors.mutedForeground} />
+                    <Text style={styles.suggestionGlyph}>◈</Text>
+                    <Text style={styles.suggestionText}>{s}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -201,52 +148,33 @@ export default function ChatScreen() {
           </View>
         }
         onContentSizeChange={() => {
-          if (messages.length > 0) {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }
+          if (messages.length > 0) flatListRef.current?.scrollToEnd({ animated: true });
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       />
 
+      {/* Thinking indicator */}
       {isThinking && (
-        <View style={[styles.thinkingBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+        <View style={styles.thinkingBar}>
+          <Text style={styles.thinkingText}>THE ORACLE CONSULTS THE RECORD</Text>
           <View style={styles.thinkingDots}>
-            {[0, 1, 2].map((i) => (
-              <View
-                key={i}
-                style={[styles.dot, { backgroundColor: colors.primary, opacity: 0.4 + i * 0.2 }]}
-              />
+            {["·", "·", "·"].map((d, i) => (
+              <Text key={i} style={[styles.thinkingDot, { opacity: 0.4 + i * 0.25 }]}>{d}</Text>
             ))}
           </View>
-          <Text style={[styles.thinkingText, { color: colors.mutedForeground }]}>
-            Searching knowledge…
-          </Text>
         </View>
       )}
 
-      <View
-        style={[
-          styles.inputBar,
-          {
-            backgroundColor: colors.card,
-            borderTopColor: colors.border,
-            paddingBottom: bottomInset + 8,
-          },
-        ]}
-      >
-        <View
-          style={[
-            styles.inputWrapper,
-            { backgroundColor: colors.secondary, borderColor: colors.border },
-          ]}
-        >
+      {/* Input */}
+      <View style={[styles.inputBar, { paddingBottom: bottomInset + 10 }]}>
+        <View style={styles.inputWrapper}>
           <TextInput
-            style={[styles.input, { color: colors.foreground }]}
+            style={styles.input}
             value={input}
             onChangeText={setInput}
-            placeholder="Ask a question…"
-            placeholderTextColor={colors.mutedForeground}
+            placeholder="Speak your query to the Oracle…"
+            placeholderTextColor="#4a3c60"
             multiline
             maxLength={500}
             returnKeyType="send"
@@ -254,68 +182,103 @@ export default function ChatScreen() {
           />
         </View>
         <Pressable
-          style={({ pressed }) => [
-            styles.sendBtn,
-            {
-              backgroundColor: input.trim() ? colors.primary : colors.secondary,
-              opacity: pressed ? 0.8 : 1,
-            },
-          ]}
+          style={[styles.sendBtn, !input.trim() && styles.sendBtnDisabled]}
           onPress={handleSend}
           disabled={!input.trim() || isThinking}
         >
-          <Ionicons
-            name="arrow-up"
-            size={20}
-            color={input.trim() ? "#fff" : colors.mutedForeground}
-          />
+          <Text style={[styles.sendBtnText, !input.trim() && styles.sendBtnTextDisabled]}>✦</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
+const GOLD = "#c9a840";
+const BORDER = "rgba(201,168,64,0.22)";
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
     paddingHorizontal: 20,
     paddingBottom: 14,
     borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    backgroundColor: "rgba(8,6,32,0.95)",
   },
-  headerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerText: { gap: 2 },
+  headerTitle: {
+    fontFamily: "Cinzel_700Bold",
+    fontSize: 16,
+    letterSpacing: 5,
+    color: GOLD,
+  },
+  headerSub: {
+    fontFamily: "Cinzel_400Regular",
+    fontSize: 8,
+    letterSpacing: 2,
+    color: "rgba(201,168,64,0.4)",
+  },
+  messagesList: { padding: 16, gap: 16, flexGrow: 1 },
+  msgWrapper: { flexDirection: "row", gap: 10, maxWidth: "92%" },
+  msgWrapperUser: { alignSelf: "flex-end", flexDirection: "row-reverse" },
+  msgWrapperOracle: { alignSelf: "flex-start" },
+  oracleAvatar: {
+    width: 30,
+    height: 30,
     borderWidth: 1,
+    borderColor: BORDER,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 20,
+    flexShrink: 0,
   },
-  headerIconText: { fontSize: 18, color: "#a78bfa" },
-  headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
-  headerSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
-  messagesList: { padding: 16, gap: 12, flexGrow: 1 },
-  messageWrapper: { flexDirection: "row", gap: 8, maxWidth: "90%" },
-  messageWrapperUser: { alignSelf: "flex-end", flexDirection: "row-reverse" },
-  messageWrapperAssistant: { alignSelf: "flex-start" },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  oracleAvatarGlyph: { color: GOLD, fontSize: 12 },
+  userAvatar: {
+    width: 30,
+    height: 30,
     borderWidth: 1,
+    borderColor: "rgba(201,168,64,0.15)",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
-    marginTop: 4,
   },
-  avatarIcon: { fontSize: 14, color: "#a78bfa" },
-  messageContent: { flex: 1, gap: 6 },
-  bubble: { padding: 12, borderRadius: 16 },
-  bubbleText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21 },
-  sources: { gap: 4 },
-  sourcesLabel: { fontSize: 10, fontFamily: "Inter_500Medium" },
+  userAvatarGlyph: { color: "rgba(201,168,64,0.5)", fontSize: 12 },
+  msgContent: { flex: 1, gap: 6 },
+  oracleLabel: {
+    fontFamily: "Cinzel_400Regular",
+    fontSize: 7,
+    letterSpacing: 2.5,
+    color: "rgba(201,168,64,0.4)",
+  },
+  bubble: {
+    padding: 12,
+    borderWidth: 1,
+  },
+  bubbleOracle: {
+    backgroundColor: "rgba(13,9,39,0.9)",
+    borderColor: BORDER,
+  },
+  bubbleUser: {
+    backgroundColor: "rgba(201,168,64,0.1)",
+    borderColor: "rgba(201,168,64,0.3)",
+  },
+  bubbleText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 21,
+  },
+  bubbleTextOracle: { color: "#e8d5a3", fontStyle: "italic" },
+  bubbleTextUser: { color: "#e8d5a3" },
+  sources: { gap: 5, paddingLeft: 2 },
+  sourcesLabel: {
+    fontFamily: "Cinzel_400Regular",
+    fontSize: 7,
+    letterSpacing: 2,
+    color: "rgba(201,168,64,0.4)",
+  },
   sourceChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   sourceChip: {
     flexDirection: "row",
@@ -323,72 +286,102 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
     borderWidth: 1,
+    borderColor: BORDER,
   },
-  sourceChipText: { fontSize: 10, fontFamily: "Inter_500Medium" },
+  sourceChipGlyph: { color: GOLD, fontSize: 8, opacity: 0.7 },
+  sourceChipText: { fontFamily: "Inter_400Regular", fontSize: 9, color: GOLD, opacity: 0.8 },
   empty: {
     flex: 1,
     alignItems: "center",
-    paddingTop: 60,
+    paddingTop: 40,
     paddingHorizontal: 32,
-    gap: 12,
+    gap: 14,
   },
-  emptyGlyph: { fontSize: 40, color: "#7c3aed" },
-  emptyTitle: { fontSize: 20, fontFamily: "Inter_700Bold", textAlign: "center" },
+  emptyTitle: {
+    fontFamily: "Cinzel_700Bold",
+    fontSize: 14,
+    letterSpacing: 5,
+    color: GOLD,
+    opacity: 0.7,
+  },
+  emptyDivider: { flexDirection: "row", alignItems: "center", gap: 10, width: "60%" },
+  emptyDividerLine: { flex: 1, height: 1, backgroundColor: BORDER },
+  emptyDividerGlyph: { color: GOLD, fontSize: 10, opacity: 0.5 },
   emptyText: {
-    fontSize: 13,
     fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#7a6850",
     textAlign: "center",
     lineHeight: 21,
+    fontStyle: "italic",
   },
-  suggestions: { width: "100%", gap: 8, marginTop: 8 },
+  suggestions: { width: "100%", gap: 8, marginTop: 6 },
   suggestion: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 10,
     padding: 12,
-    borderRadius: 12,
     borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: "rgba(13,9,39,0.6)",
   },
-  suggestionText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
+  suggestionGlyph: { color: GOLD, fontSize: 10, opacity: 0.6 },
+  suggestionText: { fontFamily: "Inter_400Regular", fontSize: 12, color: "#e8d5a3", fontStyle: "italic", flex: 1 },
   thinkingBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 20,
+    justifyContent: "center",
+    gap: 12,
     paddingVertical: 10,
     borderTopWidth: 1,
+    borderTopColor: BORDER,
+    backgroundColor: "rgba(8,6,32,0.9)",
   },
-  thinkingDots: { flexDirection: "row", gap: 4 },
-  dot: { width: 6, height: 6, borderRadius: 3 },
-  thinkingText: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  thinkingText: {
+    fontFamily: "Cinzel_400Regular",
+    fontSize: 7,
+    letterSpacing: 2.5,
+    color: "rgba(201,168,64,0.5)",
+  },
+  thinkingDots: { flexDirection: "row" },
+  thinkingDot: { color: GOLD, fontSize: 18 },
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 10,
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 12,
     borderTopWidth: 1,
+    borderTopColor: BORDER,
+    backgroundColor: "rgba(8,6,32,0.95)",
   },
   inputWrapper: {
     flex: 1,
-    borderRadius: 20,
     borderWidth: 1,
-    paddingHorizontal: 16,
+    borderColor: BORDER,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    maxHeight: 120,
+    maxHeight: 100,
+    backgroundColor: "rgba(13,9,39,0.6)",
   },
   input: {
-    fontSize: 15,
     fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#e8d5a3",
     lineHeight: 21,
+    fontStyle: "italic",
   },
   sendBtn: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: GOLD,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(201,168,64,0.1)",
   },
+  sendBtnDisabled: { borderColor: "rgba(201,168,64,0.2)", backgroundColor: "transparent" },
+  sendBtnText: { color: GOLD, fontSize: 16 },
+  sendBtnTextDisabled: { color: "rgba(201,168,64,0.25)" },
 });

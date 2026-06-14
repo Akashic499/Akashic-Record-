@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 
-import { useColors } from "@/hooks/useColors";
 import type { AbsorbedPage } from "@/context/KnowledgeContext";
 import { getDomain } from "@/lib/extractor";
 
@@ -11,35 +10,44 @@ interface Props {
 }
 
 export function AbsorptionBadge({ page, visible }: Props) {
-  const colors = useColors();
   const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(20)).current;
+  const translateY = useRef(new Animated.Value(30)).current;
+  const scale = useRef(new Animated.Value(0.92)).current;
 
   useEffect(() => {
     if (visible && page) {
       Animated.parallel([
-        Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.timing(translateY, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.spring(opacity, { toValue: 1, useNativeDriver: true, tension: 80, friction: 10 }),
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 80, friction: 10 }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }),
-        Animated.timing(translateY, { toValue: 20, duration: 400, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 30, duration: 500, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 0.92, duration: 500, useNativeDriver: true }),
       ]).start();
     }
-  }, [visible, page, opacity, translateY]);
+  }, [visible, page, opacity, translateY, scale]);
 
   if (!page) return null;
 
   return (
     <Animated.View
-      style={[styles.container, { opacity, transform: [{ translateY }] }]}
+      style={[
+        styles.container,
+        { opacity, transform: [{ translateY }, { scale }] },
+      ]}
+      pointerEvents="none"
     >
-      <View style={[styles.badge, { backgroundColor: "#10b981" }]}>
-        <View style={styles.pulseOuter} />
-        <Text style={styles.dot}>●</Text>
-        <Text style={styles.text}>Absorbed: {getDomain(page.url)}</Text>
-        <Text style={styles.count}>{page.entities.length} entities</Text>
+      <View style={styles.badge}>
+        <Text style={styles.glyph}>✦</Text>
+        <View>
+          <Text style={styles.title}>Inscribed to the Record</Text>
+          <Text style={styles.subtitle}>
+            {getDomain(page.url)} · {page.entities.length} sigils discovered
+          </Text>
+        </View>
       </View>
     </Animated.View>
   );
@@ -48,45 +56,42 @@ export function AbsorptionBadge({ page, visible }: Props) {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 100,
-    left: 16,
-    right: 16,
+    bottom: 108,
+    left: 20,
+    right: 20,
     alignItems: "center",
     zIndex: 999,
   },
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    gap: 8,
-    shadowColor: "#10b981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: "#0d0927",
+    borderWidth: 1,
+    borderColor: "rgba(201,168,64,0.6)",
+    borderRadius: 6,
+    shadowColor: "#c9a840",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
     elevation: 8,
   },
-  pulseOuter: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    borderRadius: 24,
-    backgroundColor: "#10b981",
-    opacity: 0.3,
+  glyph: {
+    fontSize: 18,
+    color: "#c9a840",
   },
-  dot: {
-    color: "#ffffff",
-    fontSize: 8,
+  title: {
+    fontFamily: "Cinzel_700Bold",
+    fontSize: 12,
+    color: "#c9a840",
+    letterSpacing: 1.5,
   },
-  text: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 13,
-    flex: 1,
-  },
-  count: {
-    color: "rgba(255,255,255,0.8)",
+  subtitle: {
+    fontFamily: "Inter_400Regular",
     fontSize: 11,
+    color: "#7a6850",
+    marginTop: 1,
   },
 });

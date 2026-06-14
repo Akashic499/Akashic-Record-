@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { StarField } from "@/components/StarField";
 import { useKnowledge } from "@/context/KnowledgeContext";
 import { useColors } from "@/hooks/useColors";
 import { getDomain } from "@/lib/extractor";
@@ -20,209 +21,135 @@ import { getDomain } from "@/lib/extractor";
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return `${m}m past`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 24) return `${h}h past`;
+  return `${Math.floor(h / 24)}d past`;
 }
 
-type Tab = "pages" | "entities";
+type Tab = "tomes" | "sigils";
 
 export default function LibraryScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { pages, entities, bookmarks } = useKnowledge();
-  const [activeTab, setActiveTab] = useState<Tab>("pages");
+  const [activeTab, setActiveTab] = useState<Tab>("tomes");
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 + 84 : 80;
-
+  const bottomPad = Platform.OS === "web" ? 34 + 84 : 84;
   const bookmarkedIds = new Set(bookmarks.map((b) => b.pageId));
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: topPad + 12,
-            backgroundColor: colors.card,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-          Library
-        </Text>
-        <View style={[styles.tabBar, { backgroundColor: colors.secondary }]}>
-          {(["pages", "entities"] as Tab[]).map((t) => (
+      <StarField />
+
+      <View style={[styles.header, { paddingTop: topPad + 14 }]}>
+        <Text style={styles.headerGlyph}>◎</Text>
+        <Text style={styles.headerTitle}>HALL OF RECORDS</Text>
+        <Text style={styles.headerSub}>THE ACCUMULATED KNOWLEDGE</Text>
+
+        <View style={styles.tabRow}>
+          {([
+            { key: "tomes", label: `TOMES  (${pages.length})` },
+            { key: "sigils", label: `SIGILS  (${entities.length})` },
+          ] as { key: Tab; label: string }[]).map((t) => (
             <Pressable
-              key={t}
-              style={[
-                styles.tabBtn,
-                activeTab === t && { backgroundColor: colors.primary },
-              ]}
-              onPress={() => setActiveTab(t)}
+              key={t.key}
+              style={[styles.tabBtn, activeTab === t.key && styles.tabBtnActive]}
+              onPress={() => setActiveTab(t.key)}
             >
               <Text
                 style={[
                   styles.tabBtnText,
-                  { color: activeTab === t ? "#fff" : colors.mutedForeground },
+                  activeTab === t.key && styles.tabBtnTextActive,
                 ]}
               >
-                {t === "pages"
-                  ? `Pages (${pages.length})`
-                  : `Entities (${entities.length})`}
+                {t.label}
               </Text>
             </Pressable>
           ))}
         </View>
       </View>
 
-      {activeTab === "pages" ? (
+      {activeTab === "tomes" ? (
         <FlatList
           data={pages}
           keyExtractor={(item) => item.id}
           renderItem={({ item: page }) => (
             <Pressable
-              style={({ pressed }) => [
-                styles.pageCard,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: bookmarkedIds.has(page.id)
-                    ? "rgba(245,158,11,0.4)"
-                    : colors.border,
-                  opacity: pressed ? 0.75 : 1,
-                },
-              ]}
+              style={({ pressed }) => [styles.tomeCard, { opacity: pressed ? 0.7 : 1 }]}
               onPress={() => router.push(`/wiki/${page.id}`)}
             >
-              <View style={styles.pageRow}>
-                {page.favicon ? (
-                  <Image source={{ uri: page.favicon }} style={styles.favicon} />
-                ) : (
-                  <View
-                    style={[
-                      styles.faviconPlaceholder,
-                      { backgroundColor: colors.secondary },
-                    ]}
-                  >
-                    <Ionicons name="globe-outline" size={14} color={colors.mutedForeground} />
+              <View style={styles.tomeCardInner}>
+                <View style={styles.tomeRow}>
+                  {page.favicon ? (
+                    <Image source={{ uri: page.favicon }} style={styles.favicon} />
+                  ) : (
+                    <Text style={styles.tomeGlyph}>◈</Text>
+                  )}
+                  <View style={styles.tomeMeta}>
+                    <Text style={styles.tomeTitle} numberOfLines={1}>{page.title}</Text>
+                    <Text style={styles.tomeSub}>
+                      {getDomain(page.url)} · {timeAgo(page.absorbedAt)} · {page.wordCount.toLocaleString()} glyphs
+                    </Text>
+                  </View>
+                  {bookmarkedIds.has(page.id) && (
+                    <Text style={styles.bookmarkGlyph}>★</Text>
+                  )}
+                  <Ionicons name="chevron-forward" size={14} color="#4a3c60" />
+                </View>
+                {page.summary ? (
+                  <Text style={styles.tomeSummary} numberOfLines={2}>{page.summary}</Text>
+                ) : null}
+                {page.entities.length > 0 && (
+                  <View style={styles.chips}>
+                    {page.entities.slice(0, 5).map((e) => (
+                      <View key={e} style={styles.chip}>
+                        <Text style={styles.chipText}>{e}</Text>
+                      </View>
+                    ))}
+                    {page.entities.length > 5 && (
+                      <Text style={styles.chipMore}>+{page.entities.length - 5}</Text>
+                    )}
                   </View>
                 )}
-                <View style={styles.pageMeta}>
-                  <Text
-                    style={[styles.pageTitle, { color: colors.foreground }]}
-                    numberOfLines={1}
-                  >
-                    {page.title}
-                  </Text>
-                  <Text
-                    style={[styles.pageDomain, { color: colors.mutedForeground }]}
-                  >
-                    {getDomain(page.url)} · {timeAgo(page.absorbedAt)} · {page.wordCount.toLocaleString()} words
-                  </Text>
-                </View>
-                {bookmarkedIds.has(page.id) && (
-                  <Ionicons name="bookmark" size={16} color="#f59e0b" />
-                )}
-                <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
               </View>
-              {page.summary ? (
-                <Text
-                  style={[styles.pageSummary, { color: colors.mutedForeground }]}
-                  numberOfLines={2}
-                >
-                  {page.summary}
-                </Text>
-              ) : null}
-              {page.entities.length > 0 && (
-                <View style={styles.chips}>
-                  {page.entities.slice(0, 5).map((e) => (
-                    <View
-                      key={e}
-                      style={[styles.chip, { backgroundColor: colors.secondary }]}
-                    >
-                      <Text
-                        style={[styles.chipText, { color: colors.primary }]}
-                        numberOfLines={1}
-                      >
-                        {e}
-                      </Text>
-                    </View>
-                  ))}
-                  {page.entities.length > 5 && (
-                    <Text style={[styles.chipMore, { color: colors.mutedForeground }]}>
-                      +{page.entities.length - 5}
-                    </Text>
-                  )}
-                </View>
-              )}
             </Pressable>
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Ionicons name="library-outline" size={48} color={colors.mutedForeground} />
-              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-                No Pages Yet
-              </Text>
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                Browse websites in the Browse tab to fill your library.
+              <Text style={styles.emptyGlyph}>◎</Text>
+              <Text style={styles.emptyTitle}>THE HALL AWAITS</Text>
+              <Text style={styles.emptyText}>
+                Browse the mortal web to inscribe tomes into the Hall of Records.
               </Text>
             </View>
           }
-          contentContainerStyle={{ padding: 16, paddingBottom: bottomPad }}
+          contentContainerStyle={{ padding: 20, paddingBottom: bottomPad }}
           showsVerticalScrollIndicator={false}
         />
       ) : (
         <ScrollView
-          contentContainerStyle={{ padding: 16, paddingBottom: bottomPad }}
+          contentContainerStyle={{ padding: 20, paddingBottom: bottomPad }}
           showsVerticalScrollIndicator={false}
         >
           {entities.length === 0 ? (
             <View style={styles.empty}>
-              <Ionicons name="git-network-outline" size={48} color={colors.mutedForeground} />
-              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-                No Entities Yet
-              </Text>
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                Entities are discovered automatically from absorbed pages.
+              <Text style={styles.emptyGlyph}>✦</Text>
+              <Text style={styles.emptyTitle}>NO SIGILS FOUND</Text>
+              <Text style={styles.emptyText}>
+                Sigils are extracted from absorbed tomes. Inscribe pages to discover them.
               </Text>
             </View>
           ) : (
-            <View style={styles.entityGrid}>
+            <View style={styles.sigilGrid}>
               {entities.map((entity) => (
-                <View
-                  key={entity.id}
-                  style={[
-                    styles.entityCard,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <View style={styles.entityCardHeader}>
-                    <Text
-                      style={[styles.entityName, { color: colors.foreground }]}
-                      numberOfLines={1}
-                    >
-                      {entity.name}
-                    </Text>
-                    <View
-                      style={[
-                        styles.entityCountBadge,
-                        { backgroundColor: "rgba(124,58,237,0.2)" },
-                      ]}
-                    >
-                      <Text style={[styles.entityCount, { color: "#a78bfa" }]}>
-                        {entity.count}×
-                      </Text>
-                    </View>
+                <View key={entity.id} style={styles.sigilCard}>
+                  <Text style={styles.sigilName} numberOfLines={1}>{entity.name}</Text>
+                  <View style={styles.sigilMeta}>
+                    <Text style={styles.sigilCount}>{entity.count}×</Text>
+                    <Text style={styles.sigilPages}>{entity.pageIds.length} tome{entity.pageIds.length !== 1 ? "s" : ""}</Text>
                   </View>
-                  <Text style={[styles.entityPages, { color: colors.mutedForeground }]}>
-                    Found in {entity.pageIds.length} page{entity.pageIds.length !== 1 ? "s" : ""}
-                  </Text>
                 </View>
               ))}
             </View>
@@ -233,91 +160,103 @@ export default function LibraryScreen() {
   );
 }
 
+const GOLD = "#c9a840";
+const BORDER = "rgba(201,168,64,0.22)";
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingHorizontal: 20,
-    paddingBottom: 14,
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    gap: 12,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-  },
-  tabBar: {
-    flexDirection: "row",
-    borderRadius: 12,
-    padding: 3,
-    gap: 3,
-  },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  tabBtnText: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-  },
-  pageCard: {
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginBottom: 10,
-    gap: 8,
-  },
-  pageRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  favicon: { width: 28, height: 28, borderRadius: 6 },
-  faviconPlaceholder: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pageMeta: { flex: 1 },
-  pageTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  pageDomain: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
-  pageSummary: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
-  chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  chipText: { fontSize: 10, fontFamily: "Inter_500Medium" },
-  chipMore: { fontSize: 10, fontFamily: "Inter_400Regular", alignSelf: "center" },
-  entityGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  entityCard: {
-    width: "48%",
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderBottomColor: BORDER,
+    backgroundColor: "rgba(8,6,32,0.95)",
     gap: 4,
   },
-  entityCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  headerGlyph: { color: GOLD, fontSize: 18, opacity: 0.6 },
+  headerTitle: {
+    fontFamily: "Cinzel_700Bold",
+    fontSize: 16,
+    letterSpacing: 5,
+    color: GOLD,
+  },
+  headerSub: {
+    fontFamily: "Cinzel_400Regular",
+    fontSize: 8,
+    letterSpacing: 3,
+    color: "rgba(201,168,64,0.4)",
+    marginBottom: 12,
+  },
+  tabRow: { flexDirection: "row", borderWidth: 1, borderColor: BORDER },
+  tabBtn: { flex: 1, paddingVertical: 9, alignItems: "center" },
+  tabBtnActive: { backgroundColor: "rgba(201,168,64,0.1)" },
+  tabBtnText: {
+    fontFamily: "Cinzel_400Regular",
+    fontSize: 9,
+    letterSpacing: 2,
+    color: "#4a3c60",
+  },
+  tabBtnTextActive: { color: GOLD },
+  tomeCard: { marginBottom: 12 },
+  tomeCardInner: {
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    backgroundColor: "rgba(13,9,39,0.85)",
+    gap: 8,
+  },
+  tomeRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  favicon: { width: 22, height: 22, borderRadius: 2 },
+  tomeGlyph: { width: 22, textAlign: "center", color: GOLD, fontSize: 14 },
+  tomeMeta: { flex: 1 },
+  tomeTitle: {
+    fontFamily: "Cinzel_400Regular",
+    fontSize: 13,
+    color: "#e8d5a3",
+    letterSpacing: 0.3,
+  },
+  tomeSub: { fontFamily: "Inter_400Regular", fontSize: 10, color: "#7a6850", marginTop: 2 },
+  bookmarkGlyph: { color: GOLD, fontSize: 13 },
+  tomeSummary: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#7a6850",
+    lineHeight: 18,
+    fontStyle: "italic",
+  },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
+  chip: { paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: BORDER },
+  chipText: { fontFamily: "Inter_400Regular", fontSize: 9, color: GOLD, opacity: 0.8 },
+  chipMore: { fontFamily: "Inter_400Regular", fontSize: 9, color: "#7a6850", alignSelf: "center" },
+  sigilGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  sigilCard: {
+    width: "47%",
+    padding: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: "rgba(13,9,39,0.85)",
     gap: 6,
   },
-  entityName: { fontSize: 13, fontFamily: "Inter_600SemiBold", flex: 1 },
-  entityCountBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
+  sigilName: { fontFamily: "Cinzel_400Regular", fontSize: 12, color: "#e8d5a3", letterSpacing: 0.3 },
+  sigilMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  sigilCount: { fontFamily: "Cinzel_700Bold", fontSize: 14, color: GOLD },
+  sigilPages: { fontFamily: "Inter_400Regular", fontSize: 9, color: "#7a6850" },
+  empty: { alignItems: "center", paddingTop: 60, gap: 14, paddingHorizontal: 32 },
+  emptyGlyph: { color: GOLD, fontSize: 32, opacity: 0.4 },
+  emptyTitle: {
+    fontFamily: "Cinzel_700Bold",
+    fontSize: 12,
+    letterSpacing: 4,
+    color: GOLD,
+    opacity: 0.6,
   },
-  entityCount: { fontSize: 11, fontFamily: "Inter_700Bold" },
-  entityPages: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  empty: {
-    alignItems: "center",
-    paddingTop: 60,
-    gap: 12,
-    paddingHorizontal: 32,
-  },
-  emptyTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
   emptyText: {
-    fontSize: 13,
     fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#7a6850",
     textAlign: "center",
     lineHeight: 20,
+    fontStyle: "italic",
   },
 });

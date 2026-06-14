@@ -3,9 +3,13 @@ import {
   Inter_500Medium,
   Inter_600SemiBold,
   Inter_700Bold,
-  useFonts,
 } from "@expo-google-fonts/inter";
+import {
+  Cinzel_400Regular,
+  Cinzel_700Bold,
+} from "@expo-google-fonts/cinzel";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
@@ -27,9 +31,10 @@ function RootLayoutNav() {
       <Stack.Screen
         name="wiki/[id]"
         options={{
-          title: "Article",
-          headerStyle: { backgroundColor: "#060714" },
-          headerTintColor: "#ede8ff",
+          title: "Tome",
+          headerStyle: { backgroundColor: "#05030e" },
+          headerTintColor: "#c9a840",
+          headerTitleStyle: { fontFamily: "Cinzel_700Bold", letterSpacing: 2 },
           headerBackTitle: "Back",
           presentation: "card",
         }}
@@ -44,6 +49,8 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    Cinzel_400Regular,
+    Cinzel_700Bold,
   });
 
   useEffect(() => {

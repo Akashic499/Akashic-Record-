@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   Platform,
   Pressable,
   StyleSheet,
@@ -15,10 +14,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import WebView from "react-native-webview";
 import type { WebViewMessageEvent, WebViewNavigation } from "react-native-webview";
 
+import { AbsorptionBadge } from "@/components/AbsorptionBadge";
 import { useKnowledge } from "@/context/KnowledgeContext";
 import { useColors } from "@/hooks/useColors";
 import { EXTRACTION_SCRIPT, getDomain, normalizeUrl, shouldExtract } from "@/lib/extractor";
-import { AbsorptionBadge } from "@/components/AbsorptionBadge";
 
 const HOME_HTML = `
 <!DOCTYPE html>
@@ -26,25 +25,62 @@ const HOME_HTML = `
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  body { background: #060714; color: #ede8ff; font-family: -apple-system, sans-serif;
-         display: flex; flex-direction: column; align-items: center; justify-content: center;
-         height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; text-align: center; }
-  h1 { font-size: 28px; letter-spacing: 4px; color: #a78bfa; margin: 0 0 4px; }
-  h2 { font-size: 20px; letter-spacing: 3px; color: #f59e0b; margin: 0 0 20px; font-weight: 700; }
-  p { color: #8884a8; font-size: 15px; line-height: 1.6; max-width: 320px; }
-  .suggestions { margin-top: 24px; display: flex; flex-direction: column; gap: 10px; }
-  .chip { background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3);
-          color: #a78bfa; padding: 10px 20px; border-radius: 20px; font-size: 14px; cursor: pointer; }
+  * { box-sizing: border-box; }
+  body {
+    background: #05030e;
+    color: #e8d5a3;
+    font-family: Georgia, serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 40px 24px;
+    text-align: center;
+  }
+  .symbol { font-size: 48px; color: #c9a840; margin-bottom: 16px; line-height: 1; }
+  h1 {
+    font-size: 22px;
+    letter-spacing: 8px;
+    color: #c9a840;
+    margin: 0 0 2px;
+    font-weight: 400;
+  }
+  h2 {
+    font-size: 12px;
+    letter-spacing: 5px;
+    color: rgba(201,168,64,0.5);
+    margin: 0 0 16px;
+    font-weight: 400;
+  }
+  hr { border: none; border-top: 1px solid rgba(201,168,64,0.2); width: 120px; margin: 14px auto; }
+  p { color: #7a6850; font-size: 14px; line-height: 1.7; max-width: 300px; font-style: italic; }
+  .grid { margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 340px; }
+  .chip {
+    border: 1px solid rgba(201,168,64,0.25);
+    color: #c9a840;
+    padding: 10px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: Georgia, serif;
+    background: rgba(201,168,64,0.04);
+    letter-spacing: 0.5px;
+  }
+  .chip:hover { background: rgba(201,168,64,0.1); }
 </style>
 </head>
 <body>
-  <h1>AKASHIC</h1>
-  <h2>RECORD</h2>
-  <p>Browse any website and its knowledge will be automatically absorbed into your record.</p>
-  <div class="suggestions">
+  <div class="symbol">✦</div>
+  <h1>ASTRAL PORTAL</h1>
+  <h2>NAVIGATE THE MORTAL WEB</h2>
+  <hr>
+  <p>Every page you visit will be inscribed into the Akashic Record, preserving its knowledge for eternity.</p>
+  <div class="grid">
     <div class="chip">wikipedia.org</div>
     <div class="chip">bbc.com/news</div>
     <div class="chip">arxiv.org</div>
+    <div class="chip">britannica.com</div>
   </div>
 </body>
 </html>
@@ -60,10 +96,8 @@ export default function BrowserScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
-  const [currentTitle, setCurrentTitle] = useState("");
 
   const webViewRef = useRef<WebView>(null);
-
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const navigate = useCallback((target: string) => {
@@ -76,9 +110,6 @@ export default function BrowserScreen() {
   const handleNavigationChange = useCallback((nav: WebViewNavigation) => {
     setCanGoBack(nav.canGoBack);
     setCanGoForward(nav.canGoForward);
-    if (nav.title) {
-      setCurrentTitle(nav.title);
-    }
     const displayUrl = nav.url || "";
     if (displayUrl && !displayUrl.startsWith("about:") && !displayUrl.startsWith("data:")) {
       setInputValue(displayUrl);
@@ -90,7 +121,7 @@ export default function BrowserScreen() {
     if (webViewRef.current && url && shouldExtract(url)) {
       setTimeout(() => {
         webViewRef.current?.injectJavaScript(EXTRACTION_SCRIPT);
-      }, 500);
+      }, 600);
     }
   }, [url]);
 
@@ -106,29 +137,25 @@ export default function BrowserScreen() {
     [absorbPage]
   );
 
-  const handleSubmitUrl = useCallback(() => {
-    navigate(inputValue);
-  }, [inputValue, navigate]);
-
-  const isEmpty = !url;
-
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior="padding"
       keyboardVerticalOffset={0}
     >
-      <View
-        style={[
-          styles.toolbar,
-          {
-            paddingTop: topPad + 8,
-            backgroundColor: colors.card,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
-        <View style={styles.navButtons}>
+      {/* Toolbar */}
+      <View style={[styles.toolbar, { paddingTop: topPad + 10 }]}>
+        <View style={styles.toolbarTop}>
+          <Text style={styles.toolbarTitle}>ASTRAL PORTAL</Text>
+          {isAbsorbing && (
+            <View style={styles.absorbPill}>
+              <Text style={styles.absorbPillDot}>◉</Text>
+              <Text style={styles.absorbPillText}>INSCRIBING</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.navRow}>
           <Pressable
             onPress={() => webViewRef.current?.goBack()}
             disabled={!canGoBack}
@@ -136,8 +163,8 @@ export default function BrowserScreen() {
           >
             <Ionicons
               name="chevron-back"
-              size={20}
-              color={canGoBack ? colors.foreground : colors.mutedForeground}
+              size={18}
+              color={canGoBack ? colors.primary : "#2a1e6a"}
             />
           </Pressable>
           <Pressable
@@ -147,57 +174,53 @@ export default function BrowserScreen() {
           >
             <Ionicons
               name="chevron-forward"
-              size={20}
-              color={canGoForward ? colors.foreground : colors.mutedForeground}
+              size={18}
+              color={canGoForward ? colors.primary : "#2a1e6a"}
+            />
+          </Pressable>
+
+          <View style={styles.urlBar}>
+            {isLoading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Text style={styles.urlBarGlyph}>{url ? "◈" : "✦"}</Text>
+            )}
+            <TextInput
+              style={styles.urlInput}
+              value={inputValue}
+              onChangeText={setInputValue}
+              onSubmitEditing={() => navigate(inputValue)}
+              placeholder="Navigate the Akashic Field…"
+              placeholderTextColor="#4a3c60"
+              keyboardType="url"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="go"
+              selectTextOnFocus
+            />
+            {inputValue.length > 0 && (
+              <Pressable onPress={() => setInputValue("")}>
+                <Ionicons name="close" size={14} color="#4a3c60" />
+              </Pressable>
+            )}
+          </View>
+
+          <Pressable
+            onPress={() => webViewRef.current?.reload()}
+            style={styles.navBtn}
+            disabled={!url}
+          >
+            <Ionicons
+              name="refresh"
+              size={16}
+              color={url ? colors.primary : "#2a1e6a"}
             />
           </Pressable>
         </View>
-
-        <View style={[styles.urlBar, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-          {isLoading ? (
-            <ActivityIndicator size="small" color={colors.primary} style={styles.loadingIcon} />
-          ) : (
-            <Ionicons
-              name={url ? "globe-outline" : "search-outline"}
-              size={15}
-              color={colors.mutedForeground}
-              style={styles.urlIcon}
-            />
-          )}
-          <TextInput
-            style={[styles.urlInput, { color: colors.foreground }]}
-            value={inputValue}
-            onChangeText={setInputValue}
-            onSubmitEditing={handleSubmitUrl}
-            placeholder="Search or enter URL"
-            placeholderTextColor={colors.mutedForeground}
-            keyboardType="url"
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="go"
-            selectTextOnFocus
-          />
-          {inputValue.length > 0 && (
-            <Pressable onPress={() => setInputValue("")}>
-              <Ionicons name="close-circle" size={16} color={colors.mutedForeground} />
-            </Pressable>
-          )}
-        </View>
-
-        <Pressable
-          onPress={() => webViewRef.current?.reload()}
-          style={styles.navBtn}
-          disabled={!url}
-        >
-          <Ionicons
-            name="refresh-outline"
-            size={20}
-            color={url ? colors.foreground : colors.mutedForeground}
-          />
-        </Pressable>
       </View>
 
-      {isEmpty ? (
+      {/* WebView */}
+      {!url ? (
         <WebView
           source={{ html: HOME_HTML }}
           style={styles.webview}
@@ -216,7 +239,6 @@ export default function BrowserScreen() {
           domStorageEnabled
           allowsBackForwardNavigationGestures
           allowsInlineMediaPlayback
-          mediaPlaybackRequiresUserAction={false}
           onError={() => setIsLoading(false)}
         />
       )}
@@ -226,34 +248,70 @@ export default function BrowserScreen() {
   );
 }
 
+const GOLD = "#c9a840";
+const BORDER = "rgba(201,168,64,0.2)";
+
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: "#05030e" },
   toolbar: {
+    backgroundColor: "#080620",
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 10,
+  },
+  toolbarTop: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    gap: 8,
-    borderBottomWidth: 1,
+    justifyContent: "space-between",
   },
-  navButtons: { flexDirection: "row", gap: 4 },
+  toolbarTitle: {
+    fontFamily: "Cinzel_700Bold",
+    fontSize: 9,
+    letterSpacing: 3,
+    color: GOLD,
+    opacity: 0.6,
+  },
+  absorbPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: "rgba(46,168,125,0.4)",
+  },
+  absorbPillDot: { color: "#2ea87d", fontSize: 8 },
+  absorbPillText: {
+    fontFamily: "Cinzel_400Regular",
+    fontSize: 8,
+    letterSpacing: 2,
+    color: "#2ea87d",
+  },
+  navRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   navBtn: { padding: 6 },
   urlBar: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
     borderWidth: 1,
+    borderColor: BORDER,
     paddingHorizontal: 10,
-    height: 38,
-    gap: 6,
+    height: 36,
+    gap: 8,
+    backgroundColor: "rgba(13,9,39,0.6)",
   },
-  urlIcon: {},
-  loadingIcon: { marginRight: 2 },
+  urlBarGlyph: { color: GOLD, fontSize: 12, opacity: 0.7 },
   urlInput: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
+    color: "#e8d5a3",
     height: "100%",
   },
   webview: { flex: 1 },

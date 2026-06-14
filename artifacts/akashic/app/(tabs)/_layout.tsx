@@ -5,7 +5,7 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 
@@ -35,7 +35,7 @@ function NativeTabLayout() {
             selected: "bubble.left.and.bubble.right.fill",
           }}
         />
-        <Label>Ask</Label>
+        <Label>Oracle</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -43,8 +43,6 @@ function NativeTabLayout() {
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -52,32 +50,31 @@ function ClassicTabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
+        tabBarInactiveTintColor: "#4a3c70",
         headerShown: false,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : colors.card,
+          backgroundColor: isIOS ? "transparent" : "#080620",
           borderTopWidth: 1,
-          borderTopColor: colors.border,
+          borderTopColor: "rgba(201,168,64,0.2)",
           elevation: 0,
           height: isWeb ? 84 : 60,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
-          fontFamily: "Inter_500Medium",
+          fontSize: 9,
+          fontFamily: "Cinzel_400Regular",
+          letterSpacing: 1,
           marginBottom: 4,
         },
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
-              intensity={80}
-              tint={isDark ? "dark" : "light"}
-              style={StyleSheet.absoluteFill}
+              intensity={60}
+              tint="dark"
+              style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(5,3,14,0.85)" }]}
             />
           ) : isWeb ? (
-            <View
-              style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]}
-            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: "#080620" }]} />
           ) : null,
       }}
     >
@@ -120,7 +117,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: "Search",
+          title: "Seek",
           tabBarIcon: ({ color, size }) =>
             isIOS ? (
               <SymbolView name="magnifyingglass" tintColor={color} size={size} />
@@ -132,16 +129,12 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "Ask",
+          title: "Oracle",
           tabBarIcon: ({ color, size }) =>
             isIOS ? (
-              <SymbolView
-                name="bubble.left.and.bubble.right"
-                tintColor={color}
-                size={size}
-              />
+              <SymbolView name="bubble.left.and.bubble.right" tintColor={color} size={size} />
             ) : (
-              <Ionicons name="chatbubbles-outline" size={size} color={color} />
+              <Ionicons name="eye-outline" size={size} color={color} />
             ),
         }}
       />
