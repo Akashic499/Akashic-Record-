@@ -17,7 +17,7 @@ import { StarField } from "@/components/StarField";
 import { useKnowledge, type ChatMessage } from "@/context/KnowledgeContext";
 import { useColors } from "@/hooks/useColors";
 import { getDomain } from "@/lib/extractor";
-import { generateAnswer } from "@/lib/search";
+import { askOracle } from "@/lib/oracle";
 
 export default function ChatScreen() {
   const colors = useColors();
@@ -26,6 +26,7 @@ export default function ChatScreen() {
 
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -35,14 +36,22 @@ export default function ChatScreen() {
     const question = input.trim();
     if (!question) return;
     setInput("");
+    setError(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     addMessage("user", question);
     setIsThinking(true);
-    await new Promise((r) => setTimeout(r, 600));
-    const { answer, sources } = generateAnswer(question, pages);
-    addMessage("assistant", answer, sources);
-    setIsThinking(false);
-  }, [input, pages, addMessage]);
+
+    try {
+      const { answer, sources } = await askOracle(question, pages, messages);
+      addMessage("assistant", answer, sources);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "The Oracle is silent. Try again.";
+      setError(msg);
+      addMessage("assistant", "The Oracle's vision is obscured. The ethereal connection faltered — please try again.", []);
+    } finally {
+      setIsThinking(false);
+    }
+  }, [input, pages, messages, addMessage]);
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isUser = item.role === "user";
@@ -100,7 +109,7 @@ export default function ChatScreen() {
           <Text style={styles.headerTitle}>THE ORACLE</Text>
           <Text style={styles.headerSub}>
             {pages.length > 0
-              ? `${pages.length} TOME${pages.length !== 1 ? "S" : ""} IN THE RECORD`
+              ? `${pages.length} TOME${pages.length !== 1 ? "S" : ""} IN THE RECORD · GEMINI AI`
               : "INSCRIBE TOMES TO AWAKEN THE ORACLE"}
           </Text>
         </View>
@@ -124,7 +133,7 @@ export default function ChatScreen() {
             </View>
             <Text style={styles.emptyText}>
               {pages.length > 0
-                ? `The Oracle has absorbed ${pages.length} tome${pages.length !== 1 ? "s" : ""} of knowledge. Speak your query and receive wisdom from the Record.`
+                ? `The Oracle has absorbed ${pages.length} tome${pages.length !== 1 ? "s" : ""} of knowledge. Powered by Gemini AI, it shall speak with true wisdom.`
                 : "The Oracle is silent. Inscribe tomes by browsing the mortal web, then the Oracle shall speak."}
             </Text>
             {pages.length > 0 && (
@@ -153,6 +162,16 @@ export default function ChatScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       />
+
+      {/* Error bar */}
+      {error && (
+        <View style={styles.errorBar}>
+          <Text style={styles.errorText}>⚠ {error}</Text>
+          <Pressable onPress={() => setError(null)}>
+            <Text style={styles.errorDismiss}>✕</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Thinking indicator */}
       {isThinking && (
@@ -328,6 +347,27 @@ const styles = StyleSheet.create({
   },
   suggestionGlyph: { color: GOLD, fontSize: 10, opacity: 0.6 },
   suggestionText: { fontFamily: "Inter_400Regular", fontSize: 12, color: "#e8d5a3", fontStyle: "italic", flex: 1 },
+  errorBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "rgba(180,60,60,0.15)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(180,60,60,0.3)",
+  },
+  errorText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "rgba(220,120,120,0.9)",
+    flex: 1,
+  },
+  errorDismiss: {
+    color: "rgba(220,120,120,0.6)",
+    fontSize: 12,
+    paddingLeft: 12,
+  },
   thinkingBar: {
     flexDirection: "row",
     alignItems: "center",
