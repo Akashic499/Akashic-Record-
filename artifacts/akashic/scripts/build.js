@@ -464,6 +464,22 @@ function updateBundleUrls(timestamp, baseUrl) {
 }
 
 function updateManifests(manifests, timestamp, baseUrl, assetsByHash) {
+  const fixLocalhostUrls = (obj) => {
+    if (typeof obj === "string") {
+      return obj.replace(
+        /http:\/\/127\.0\.0\.1:8081\/assets\//g,
+        `${baseUrl}${basePath}/${timestamp}/_expo/static/js/`
+      );
+    }
+    if (Array.isArray(obj)) return obj.map(fixLocalhostUrls);
+    if (obj && typeof obj === "object") {
+      return Object.fromEntries(
+        Object.entries(obj).map(([k, v]) => [k, fixLocalhostUrls(v)])
+      );
+    }
+    return obj;
+  };
+
   const updateForPlatform = (platform, manifest) => {
     if (!manifest.launchAsset || !manifest.extra) {
       exitWithError(`Malformed manifest for ${platform}`);
@@ -479,6 +495,9 @@ function updateManifests(manifests, timestamp, baseUrl, assetsByHash) {
     manifest.extra.expoGo.debuggerHost =
       baseUrl.replace("https://", "") + "/" + platform;
     manifest.extra.expoGo.packagerOpts.dev = false;
+
+    // Fix localhost asset URLs baked in by Metro
+    manifest.extra.expoClient = fixLocalhostUrls(manifest.extra.expoClient);
 
     if (manifest.assets && manifest.assets.length > 0) {
       manifest.assets.forEach((asset) => {
