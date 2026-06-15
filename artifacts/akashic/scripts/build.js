@@ -92,6 +92,13 @@ function prepareDirectories(timestamp) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
+  // Write Cloudflare _headers file for correct content types
+  const headersContent = `/*/manifest.json
+  Content-Type: application/expo+json
+  Cache-Control: no-cache
+`;
+  fs.writeFileSync(path.join(staticBuild, "_headers"), headersContent);
+
   console.log("Build:", timestamp);
 }
 
