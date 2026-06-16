@@ -1,22 +1,29 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Akashic Record API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: tomes
+    description: Inscribed knowledge entries
+  - name: oracle
+    description: AI oracle queries
+  - name: admin
+    description: Admin panel operations
+  - name: users
+    description: User management
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +31,306 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /tomes:
+    get:
+      operationId: listTomes
+      tags: [tomes]
+      summary: List all tomes
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of tomes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TomeList"
+    post:
+      operationId: createTome
+      tags: [tomes]
+      summary: Inscribe a new tome
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TomeInput"
+      responses:
+        "201":
+          description: Tome created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tome"
+
+  /tomes/featured:
+    get:
+      operationId: listFeaturedTomes
+      tags: [tomes]
+      summary: Get featured tomes for homepage
+      responses:
+        "200":
+          description: Featured tomes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tome"
+
+  /tomes/recent:
+    get:
+      operationId: listRecentTomes
+      tags: [tomes]
+      summary: Get recently inscribed tomes
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Recent tomes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tome"
+
+  /tomes/stats:
+    get:
+      operationId: getTomeStats
+      tags: [tomes]
+      summary: Get tome statistics
+      responses:
+        "200":
+          description: Tome stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TomeStats"
+
+  /tomes/categories:
+    get:
+      operationId: listCategories
+      tags: [tomes]
+      summary: List all categories with counts
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  /tomes/{id}:
+    get:
+      operationId: getTome
+      tags: [tomes]
+      summary: Get a single tome
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tome found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tome"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTome
+      tags: [tomes]
+      summary: Update a tome
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TomeUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tome"
+    delete:
+      operationId: deleteTome
+      tags: [tomes]
+      summary: Delete a tome
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /oracle:
+    post:
+      operationId: queryOracle
+      tags: [oracle]
+      summary: Query the Oracle AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OracleQuery"
+      responses:
+        "200":
+          description: Oracle response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OracleResponse"
+
+  /oracle/logs:
+    get:
+      operationId: listOracleLogs
+      tags: [oracle]
+      summary: Get oracle query logs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Oracle logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OracleLog"
+
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCredentials"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSession"
+        "401":
+          description: Unauthorized
+
+  /admin/logout:
+    post:
+      operationId: adminLogout
+      tags: [admin]
+      summary: Admin logout
+      responses:
+        "200":
+          description: Logged out
+
+  /admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      tags: [admin]
+      summary: Get admin dashboard summary
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboard"
+
+  /admin/users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /admin/users/{id}:
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +341,227 @@ components:
       required:
         - status
 
+    Tome:
+      type: object
+      required: [id, title, content, category, createdAt, featured]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        excerpt:
+          type: ["string", "null"]
+        content:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        sourceUrl:
+          type: ["string", "null"]
+        featured:
+          type: boolean
+        viewCount:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    TomeInput:
+      type: object
+      required: [title, content, category]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        excerpt:
+          type: string
+        content:
+          type: string
+          minLength: 1
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        sourceUrl:
+          type: string
+        featured:
+          type: boolean
+
+    TomeUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        excerpt:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        sourceUrl:
+          type: string
+        featured:
+          type: boolean
+
+    TomeList:
+      type: object
+      required: [tomes, total]
+      properties:
+        tomes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tome"
+        total:
+          type: integer
+
+    TomeStats:
+      type: object
+      required: [totalTomes, totalCategories, totalViews, recentCount]
+      properties:
+        totalTomes:
+          type: integer
+        totalCategories:
+          type: integer
+        totalViews:
+          type: integer
+        recentCount:
+          type: integer
+        topCategories:
+          type: array
+          items:
+            $ref: "#/components/schemas/Category"
+
+    Category:
+      type: object
+      required: [name, count]
+      properties:
+        name:
+          type: string
+        count:
+          type: integer
+
+    OracleQuery:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+        context:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              url:
+                type: string
+              content:
+                type: string
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+              content:
+                type: string
+
+    OracleResponse:
+      type: object
+      required: [answer]
+      properties:
+        answer:
+          type: string
+
+    OracleLog:
+      type: object
+      required: [id, question, answer, createdAt]
+      properties:
+        id:
+          type: integer
+        question:
+          type: string
+        answer:
+          type: string
+        createdAt:
+          type: string
+
+    AdminCredentials:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    AdminSession:
+      type: object
+      required: [token, expiresAt]
+      properties:
+        token:
+          type: string
+        expiresAt:
+          type: string
+
+    AdminDashboard:
+      type: object
+      required: [totalTomes, totalUsers, totalOracleQueries, recentActivity]
+      properties:
+        totalTomes:
+          type: integer
+        totalUsers:
+          type: integer
+        totalOracleQueries:
+          type: integer
+        totalViews:
+          type: integer
+        recentTomes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tome"
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityItem"
+        categoryBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/Category"
+
+    ActivityItem:
+      type: object
+      required: [type, description, createdAt]
+      properties:
+        type:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+
+    User:
+      type: object
+      required: [id, email, createdAt]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        username:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        tomeCount:
+          type: integer
